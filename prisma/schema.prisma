@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("MONGO_URI")
+}
+
+model User {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  fullName    String
+  email       String    @unique
+  password    String
+  profileUrl  String?
+  isVerified  Boolean   @default(false)
+  otp         String?
+  otpExpiry   DateTime?
+  department  String?
+  level       String?
+  bio         String?
+  whatsappNum String?
+  address     String?
+
+  privacy    Privacy?   @relation("UserPrivacy")
+  products   Product[]  @relation("SellerProducts")
+  reported   Report[]   @relation("Reporter")
+  reportedBy Report[]   @relation("ReportedUser")
+  wishlist   Wishlist[] @relation("UserWishlist")
+
+  sentMessages     Message[] @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Privacy {
+  id             String  @id @default(auto()) @map("_id") @db.ObjectId
+  user           User?   @relation("UserPrivacy", fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  userId         String? @unique @db.ObjectId
+  showEmail      Boolean @default(true)
+  showWhatsapp   Boolean @default(true)
+  showAddress    Boolean @default(false)
+  showDepartment Boolean @default(true)
+  showLevel      Boolean @default(true)
+}
+
+model Product {
+  id           String     @id @default(auto()) @map("_id") @db.ObjectId
+  title        String
+  description  String?
+  price        Float?
+  imageUrl     String?
+  category     String?
+  location     String?
+  availability Int
+  seller       User       @relation("SellerProducts", fields: [sellerId], references: [id])
+  sellerId     String     @db.ObjectId
+  wishlists    Wishlist[] @relation("ProductWishlist")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Report {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  reporter       User     @relation("Reporter", fields: [reporterId], references: [id])
+  reporterId     String   @db.ObjectId
+  reportedUser   User     @relation("ReportedUser", fields: [reportedUserId], references: [id])
+  reportedUserId String   @db.ObjectId
+  reason         String
+  createdAt      DateTime @default(now())
+}
+
+model Wishlist {
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  user      User    @relation("UserWishlist", fields: [userId], references: [id])
+  userId    String  @db.ObjectId
+  product   Product @relation("ProductWishlist", fields: [productId], references: [id])
+  productId String  @db.ObjectId
+}
+
+model Message {
+  id         String @id @default(auto()) @map("_id") @db.ObjectId
+  fromUser   User   @relation("SentMessages", fields: [fromUserId], references: [id])
+  fromUserId String @db.ObjectId
+
+  toUser   User   @relation("ReceivedMessages", fields: [toUserId], references: [id])
+  toUserId String @db.ObjectId
+
+  content   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
